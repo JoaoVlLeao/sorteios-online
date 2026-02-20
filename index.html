@@ -58,7 +58,7 @@
         .input-wrapper {
             display: flex;
             flex-direction: column;
-            gap: 8px; /* Espaçamento equivalente e menor entre os inputs */
+            gap: 8px;
             margin-bottom: 15px;
         }
         input[type="text"] {
@@ -70,15 +70,15 @@
             box-sizing: border-box;
         }
         .btn {
-            padding: 15px; /* Botão mais grosso de altura */
+            padding: 15px;
             border: none;
             border-radius: 5px;
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
             transition: background-color 0.3s;
-            display: block;
-            margin: 0 auto;
+            display: inline-block;
+            margin: 5px;
         }
         .btn-add {
             background-color: #e0e6ed;
@@ -86,6 +86,7 @@
             width: 100%;
             padding: 12px;
             font-size: 14px;
+            margin: 0;
         }
         .btn-add:hover {
             background-color: #d1d8e0;
@@ -94,11 +95,28 @@
             background-color: #27ae60;
             color: white;
             width: 100%;
-            max-width: 250px; /* Menos largo de comprimento */
-            margin-top: 10px;
+            max-width: 250px;
         }
         .btn-sortear:hover {
             background-color: #219150;
+        }
+        .btn-limpar {
+            background-color: #e74c3c;
+            color: white;
+            width: 100%;
+            max-width: 150px;
+            font-size: 14px;
+            padding: 15px 10px;
+        }
+        .btn-limpar:hover {
+            background-color: #c0392b;
+        }
+        .botoes-acao {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
         }
         #resultado {
             margin-top: 30px;
@@ -127,11 +145,11 @@
 <body>
 
 <div class="container">
-    <h2>Sorteador / Associações</h2>
+    <h2>Sorteador de Confrontos / Associações</h2>
     
     <div class="columns-wrapper">
         <div class="col">
-            <h3>Lista A</h3>
+            <h3>Lista A (Ex: Grupos)</h3>
             <div id="lista-a" class="input-wrapper">
                 <input type="text" class="input-a" placeholder="Item 1">
                 <input type="text" class="input-a" placeholder="Item 2">
@@ -142,7 +160,7 @@
         </div>
 
         <div class="col">
-            <h3>Lista B</h3>
+            <h3>Lista B (Ex: Locais)</h3>
             <div id="lista-b" class="input-wrapper">
                 <input type="text" class="input-b" placeholder="Item 1">
                 <input type="text" class="input-b" placeholder="Item 2">
@@ -153,12 +171,18 @@
         </div>
     </div>
 
-    <button class="btn btn-sortear" onclick="sortear()">CRUZAR LISTAS</button>
+    <div class="botoes-acao">
+        <button class="btn btn-sortear" onclick="sortear()">CRUZAR LISTAS</button>
+        <button class="btn btn-limpar" onclick="limparSorteio()">Limpar Sorteio</button>
+    </div>
 
     <div id="resultado"></div>
 </div>
 
 <script>
+    // A mágica acontece aqui. Esta variável controla se é o primeiro sorteio.
+    let primeiroSorteio = true;
+
     function addInput(containerId, inputClass) {
         const container = document.getElementById(containerId);
         const input = document.createElement('input');
@@ -168,10 +192,21 @@
         container.appendChild(input);
     }
 
+    function limparSorteio() {
+        document.getElementById('resultado').style.display = 'none';
+        document.getElementById('resultado').innerHTML = '';
+        // Oculta o resultado, mas NÃO reseta o "primeiroSorteio". 
+        // Assim, o próximo sorteio na mesma tela será 100% legítimo.
+    }
+
     function sortear() {
-        // Coleta os valores ignorando caixas vazias
-        let listaA = Array.from(document.querySelectorAll('.input-a')).map(i => i.value.trim()).filter(v => v !== '');
-        let listaB = Array.from(document.querySelectorAll('.input-b')).map(i => i.value.trim()).filter(v => v !== '');
+        // Guarda a ordem original para exibição
+        let listaAOriginal = Array.from(document.querySelectorAll('.input-a')).map(i => i.value.trim()).filter(v => v !== '');
+        let listaBOriginal = Array.from(document.querySelectorAll('.input-b')).map(i => i.value.trim()).filter(v => v !== '');
+
+        // Cópias para manipulação
+        let listaA = [...listaAOriginal];
+        let listaB = [...listaBOriginal];
 
         if(listaA.length === 0 || listaB.length === 0) {
             alert("Preencha os itens antes de sortear.");
@@ -183,20 +218,25 @@
             return;
         }
 
-        // Procura os alvos para a "mágica" acontecer
-        let indexCaic = listaB.findIndex(val => val.toUpperCase().includes("CAIC"));
-        let indexGrupo3 = listaA.findIndex(val => val.toUpperCase().includes("GRUPO 3") || val === "3");
-
         let associacoes = [];
 
-        // Se encontrou CAIC e Grupo 3, faz a união forçada e remove eles do sorteio geral
-        if (indexCaic !== -1 && indexGrupo3 !== -1) {
-            associacoes.push({ a: listaA[indexGrupo3], b: listaB[indexCaic] });
-            listaA.splice(indexGrupo3, 1);
-            listaB.splice(indexCaic, 1);
+        // REGRA OCULTA: Só executa se for o PRIMEIRO sorteio desde que a página abriu
+        if (primeiroSorteio) {
+            let indexCaic = listaB.findIndex(val => val.toUpperCase().includes("CAIC"));
+            let indexGrupo3 = listaA.findIndex(val => val.toUpperCase().includes("GRUPO 3") || val === "3");
+
+            if (indexCaic !== -1 && indexGrupo3 !== -1) {
+                // Força a união
+                associacoes.push({ a: listaA[indexGrupo3], b: listaB[indexCaic] });
+                // Remove os dois itens das listas para não serem sorteados novamente
+                listaA.splice(indexGrupo3, 1);
+                listaB.splice(indexCaic, 1);
+            }
+            // Desativa a trapaça permanentemente até que a página seja atualizada no navegador (F5)
+            primeiroSorteio = false; 
         }
 
-        // Embaralha o que sobrou da Lista B
+        // Embaralha o que sobrou da Lista B (que será a lista toda se não for o primeiro sorteio)
         for (let i = listaB.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [listaB[i], listaB[j]] = [listaB[j], listaB[i]];
@@ -207,9 +247,7 @@
             associacoes.push({ a: listaA[i], b: listaB[i] });
         }
 
-        // Monta o visual respeitando a ordem original que o usuário digitou na Lista A
-        let listaAOriginal = Array.from(document.querySelectorAll('.input-a')).map(i => i.value.trim()).filter(v => v !== '');
-        
+        // Monta o visual respeitando a ordem original da Lista A
         let html = "<h3>Resultado do Sorteio:</h3>";
         
         for (let itemA of listaAOriginal) {
