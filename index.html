@@ -77,8 +77,7 @@
             font-weight: bold;
             cursor: pointer;
             transition: background-color 0.3s;
-            display: inline-block;
-            margin: 5px;
+            display: block;
         }
         .btn-add {
             background-color: #e0e6ed;
@@ -96,27 +95,10 @@
             color: white;
             width: 100%;
             max-width: 250px;
+            margin: 10px auto 0 auto; /* Centraliza o botão */
         }
         .btn-sortear:hover {
             background-color: #219150;
-        }
-        .btn-limpar {
-            background-color: #e74c3c;
-            color: white;
-            width: 100%;
-            max-width: 150px;
-            font-size: 14px;
-            padding: 15px 10px;
-        }
-        .btn-limpar:hover {
-            background-color: #c0392b;
-        }
-        .botoes-acao {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 10px;
-            flex-wrap: wrap;
         }
         #resultado {
             margin-top: 30px;
@@ -149,7 +131,7 @@
     
     <div class="columns-wrapper">
         <div class="col">
-            <h3>Lista A (Ex: Grupos)</h3>
+            <h3>Lista A</h3>
             <div id="lista-a" class="input-wrapper">
                 <input type="text" class="input-a" placeholder="Item 1">
                 <input type="text" class="input-a" placeholder="Item 2">
@@ -160,7 +142,7 @@
         </div>
 
         <div class="col">
-            <h3>Lista B (Ex: Locais)</h3>
+            <h3>Lista B</h3>
             <div id="lista-b" class="input-wrapper">
                 <input type="text" class="input-b" placeholder="Item 1">
                 <input type="text" class="input-b" placeholder="Item 2">
@@ -171,16 +153,13 @@
         </div>
     </div>
 
-    <div class="botoes-acao">
-        <button class="btn btn-sortear" onclick="sortear()">CRUZAR LISTAS</button>
-        <button class="btn btn-limpar" onclick="limparSorteio()">Limpar Sorteio</button>
-    </div>
+    <button class="btn btn-sortear" onclick="sortear()">CRUZAR LISTAS</button>
 
     <div id="resultado"></div>
 </div>
 
 <script>
-    // A mágica acontece aqui. Esta variável controla se é o primeiro sorteio.
+    // Variável que controla a "mágica" apenas no primeiro sorteio
     let primeiroSorteio = true;
 
     function addInput(containerId, inputClass) {
@@ -192,19 +171,12 @@
         container.appendChild(input);
     }
 
-    function limparSorteio() {
-        document.getElementById('resultado').style.display = 'none';
-        document.getElementById('resultado').innerHTML = '';
-        // Oculta o resultado, mas NÃO reseta o "primeiroSorteio". 
-        // Assim, o próximo sorteio na mesma tela será 100% legítimo.
-    }
-
     function sortear() {
-        // Guarda a ordem original para exibição
+        // Guarda a ordem original para exibição na tela
         let listaAOriginal = Array.from(document.querySelectorAll('.input-a')).map(i => i.value.trim()).filter(v => v !== '');
         let listaBOriginal = Array.from(document.querySelectorAll('.input-b')).map(i => i.value.trim()).filter(v => v !== '');
 
-        // Cópias para manipulação
+        // Cópias que sofrerão as remoções e embaralhamento no script
         let listaA = [...listaAOriginal];
         let listaB = [...listaBOriginal];
 
@@ -220,23 +192,34 @@
 
         let associacoes = [];
 
-        // REGRA OCULTA: Só executa se for o PRIMEIRO sorteio desde que a página abriu
+        // REGRA OCULTA: Só executa se for o PRIMEIRO sorteio
         if (primeiroSorteio) {
-            let indexCaic = listaB.findIndex(val => val.toUpperCase().includes("CAIC"));
-            let indexGrupo3 = listaA.findIndex(val => val.toUpperCase().includes("GRUPO 3") || val === "3");
+            
+            // Procura Grupo 3 na A e CAIC na B
+            let indexGrupoA = listaA.findIndex(val => val.toUpperCase().includes("GRUPO 3") || val === "3");
+            let indexCaicB = listaB.findIndex(val => val.toUpperCase().includes("CAIC"));
+            
+            // Procura CAIC na A e Grupo 3 na B
+            let indexCaicA = listaA.findIndex(val => val.toUpperCase().includes("CAIC"));
+            let indexGrupoB = listaB.findIndex(val => val.toUpperCase().includes("GRUPO 3") || val === "3");
 
-            if (indexCaic !== -1 && indexGrupo3 !== -1) {
-                // Força a união
-                associacoes.push({ a: listaA[indexGrupo3], b: listaB[indexCaic] });
-                // Remove os dois itens das listas para não serem sorteados novamente
-                listaA.splice(indexGrupo3, 1);
-                listaB.splice(indexCaic, 1);
+            // Condição 1: Grupo 3 está na Lista A e CAIC está na Lista B
+            if (indexGrupoA !== -1 && indexCaicB !== -1) {
+                associacoes.push({ a: listaA[indexGrupoA], b: listaB[indexCaicB] });
+                listaA.splice(indexGrupoA, 1);
+                listaB.splice(indexCaicB, 1);
+                primeiroSorteio = false; 
+            } 
+            // Condição 2: CAIC está na Lista A e Grupo 3 está na Lista B
+            else if (indexCaicA !== -1 && indexGrupoB !== -1) {
+                associacoes.push({ a: listaA[indexCaicA], b: listaB[indexGrupoB] });
+                listaA.splice(indexCaicA, 1);
+                listaB.splice(indexGrupoB, 1);
+                primeiroSorteio = false; 
             }
-            // Desativa a trapaça permanentemente até que a página seja atualizada no navegador (F5)
-            primeiroSorteio = false; 
         }
 
-        // Embaralha o que sobrou da Lista B (que será a lista toda se não for o primeiro sorteio)
+        // Embaralha o que sobrou da Lista B
         for (let i = listaB.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [listaB[i], listaB[j]] = [listaB[j], listaB[i]];
@@ -247,7 +230,7 @@
             associacoes.push({ a: listaA[i], b: listaB[i] });
         }
 
-        // Monta o visual respeitando a ordem original da Lista A
+        // Monta o visual respeitando a ordem original da Lista A para não parecer bagunçado
         let html = "<h3>Resultado do Sorteio:</h3>";
         
         for (let itemA of listaAOriginal) {
